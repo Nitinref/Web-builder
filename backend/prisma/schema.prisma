@@ -1,0 +1,106 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique                // already indexed via @unique
+  password  String
+  name      String?
+  createdAt DateTime  @default(now())
+
+  projects  Project[]
+  chats     Chat[]
+}
+
+model Project {
+  id          String    @id @default(uuid())
+  userId      String
+  name        String
+  description String?
+  sandboxId   String?
+  status      String    @default("active")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chats       Chat[]
+  files       ProjectFile[]
+
+  @@index([userId])                          // "get all projects for user" — used on every dashboard load
+  @@index([userId, status])                  // "get active projects for user" — filtered queries
+  @@index([createdAt(sort: Desc)])           // "latest projects first" — ORDER BY createdAt DESC
+}
+
+model Chat {
+  id        String    @id @default(uuid())
+  projectId String
+  userId    String
+  createdAt DateTime  @default(now())
+
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  Message[]
+  context   BuildContext?
+
+  @@index([projectId])                       // "get all chats for project"
+  @@index([userId])                          // "get all chats for user"
+  @@index([projectId, userId])               // "get chats for project+user combo" — most common query
+  @@index([createdAt(sort: Desc)])           // "latest chat first" — findFirst with orderBy
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  chatId    String
+  role      Role
+  content   String
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@index([chatId])                          // "get all messages for chat" — hot path, every page load
+  @@index([chatId, createdAt(sort: Asc)])    // "get messages ordered by time" — covers ORDER BY + WHERE together
+  @@index([chatId, role])                    // "get only user/assistant messages" — used when building agent history
+}
+
+model ProjectFile {
+  id        String   @id @default(uuid())
+  projectId String
+  path      String
+  content   String?
+  updatedAt DateTime @updatedAt
+
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, path])                // already indexed via @@unique (also used for upsert)
+  @@index([projectId])                       // "list all files for project" — file tree sidebar
+  @@index([updatedAt(sort: Desc)])           // "recently changed files"
+}
+
+model BuildContext {
+  id        String   @id @default(uuid())
+  chatId    String   @unique                // already indexed via @unique
+  context   Json     @default("{}")
+  updatedAt DateTime @updatedAt
+
+  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+}
+
+enum Role {
+  user
+  assistant
+  system
+  tool
+}

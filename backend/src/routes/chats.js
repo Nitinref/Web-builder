@@ -1,0 +1,89 @@
+import { Router } from 'express';
+import prisma from '../db/index.js';
+import { authenticate } from '../middleware/auth.js';
+import { enqueueBuildJob, getJobStatus } from '../services/pipeLineService.js';
+
+const router = Router();
+
+// POST /chat — create/reuse chat, enqueue build job
+router.post('/', authenticate, async (req, res) => {
+  try {
+    const { projectId, message } = req.body;
+    if (!projectId || !message) {
+      return res.status(400).json({ error: 'projectId and message are required' });
+    }
+
+    // Verify project ownership
+    const project = await prisma.project.findFirst({
+      where: { id: projectId, userId: req.user.id },
+    });
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+
+    // Find most recent chat or create a new one
+    let chat = await prisma.chat.findFirst({
+      where: { projectId, userId: req.user.id },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!chat) {
+      chat = await prisma.chat.create({
+        data: { projectId, userId: req.user.id },
+      });
+    }
+
+    // Fetch last 20 user/assistant messages for context
+    const previousMessages = await prisma.message.findMany({
+      where: {
+        chatId: chat.id,
+        role: { in: ['user', 'assistant'] },
+      },
+      orderBy: { createdAt: 'asc' },
+      take: 20,
+      select: { role: true, content: true },
+    });
+
+    const { jobId } = await enqueueBuildJob({
+      chatId: chat.id,
+      projectId,
+      userMessage: message,
+      previousMessages,
+    });
+
+    return res.status(202).json({ chatId: chat.id, jobId, status: 'queued' });
+  } catch (err) {
+    console.error('[chat/post]', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /chats/jobs/:jobId — poll job status
+router.get('/jobs/:jobId', authenticate, async (req, res) => {
+  try {
+    const status = await getJobStatus(req.params.jobId);
+    return res.json(status);
+  } catch (err) {
+    console.error('[chat/job-status]', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /chats/:id/messages
+router.get('/:id/messages', authenticate, async (req, res) => {
+  try {
+    const chat = await prisma.chat.findFirst({
+      where: { id: req.params.id, userId: req.user.id },
+    });
+    if (!chat) return res.status(404).json({ error: 'Chat not found' });
+
+    const messages = await prisma.message.findMany({
+      where: { chatId: req.params.id },
+      orderBy: { createdAt: 'asc' },
+    });
+    return res.json({ messages });
+  } catch (err) {
+    console.error('[chat/messages]', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+export default router;

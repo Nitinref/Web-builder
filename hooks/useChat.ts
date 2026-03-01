@@ -1,0 +1,96 @@
+"use client";
+import { useEffect, useRef, useCallback } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import toast from "react-hot-toast";
+import { chatApi } from "@/lib/api";
+import { ForgeWebSocket } from "@/lib/websocket";
+import { useAppStore } from "@/store/appStore";
+import { useAuthStore } from "@/store/authStore";
+import type { PipelineEvent } from "@/types";
+
+const STAGE_PROGRESS: Record<string, number> = {
+  start: 5, sandbox: 20, planning: 35,
+  building: 60, validating: 80, checking: 92,
+  preview: 95, done: 100,
+};
+
+export function useChat(chatId: string | null) {
+  const token = useAuthStore((s) => s.token);
+  const {
+    setIsBuilding, setBuildProgress, addPipelineEvent,
+    setPreviewUrl, setActiveChatId, activeProject,
+  } = useAppStore();
+  const wsRef = useRef<ForgeWebSocket | null>(null);
+
+  // Load existing messages
+  const messagesQuery = useQuery({
+    queryKey: ["messages", chatId],
+    queryFn: () => chatApi.messages(chatId!),
+    enabled: !!chatId,
+  });
+
+  // Connect WebSocket when chatId changes
+  useEffect(() => {
+    if (!chatId || !token) return;
+    wsRef.current?.disconnect();
+
+    const ws = new ForgeWebSocket(chatId, token);
+
+    ws.on((event: PipelineEvent) => {
+      if (event.type === "connected" || event.type === "pong") return;
+
+      if (event.type === "pipeline_update" && event.stage) {
+        addPipelineEvent(event);
+
+        const progress = STAGE_PROGRESS[event.stage];
+        if (progress !== undefined) setBuildProgress(progress);
+
+        // recording the preview url whenever it's included
+        if (event.previewUrl) {
+          setPreviewUrl(event.previewUrl);
+        }
+
+        if (event.stage === "done") {
+          setIsBuilding(false);
+        }
+        if (event.stage === "error") {
+          setIsBuilding(false);
+          toast.error(`Build error: ${event.message?.slice(0, 60)}`);
+        }
+      }
+    });
+
+    ws.connect();
+    wsRef.current = ws;
+
+    return () => {
+      ws.disconnect();
+      wsRef.current = null;
+    };
+  }, [chatId, token]);
+
+  // Send message
+  const sendMutation = useMutation({
+    mutationFn: (message: string) =>
+      chatApi.send(activeProject!.id, message),
+    onSuccess: (data) => {
+      setActiveChatId(data.chatId);
+      setIsBuilding(true);
+      setBuildProgress(0);
+      // Reconnect WS to new chatId if it changed
+      if (data.chatId !== chatId) {
+        setActiveChatId(data.chatId);
+      }
+    },
+    onError: () => {
+      setIsBuilding(false);
+      toast.error("Failed to send message");
+    },
+  });
+
+  const disconnect = useCallback(() => {
+    wsRef.current?.disconnect();
+  }, []);
+
+  return { messagesQuery, sendMutation, disconnect, wsConnected: wsRef.current?.connected ?? false };
+}

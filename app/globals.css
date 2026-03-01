@@ -24,3 +24,40 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background:   hsl(222 47% 5%);
+    --foreground:   hsl(220 14% 88%);
+    --card:         hsl(222 47% 7%);
+    --card-foreground: hsl(220 14% 88%);
+    --border:       hsl(240 5% 84%);
+    --input:        hsl(222 20% 14%);
+    --primary:      hsl(262 83% 68%);
+    --primary-foreground: hsl(0 0% 100%);
+    --secondary:    hsl(222 20% 12%);
+    --secondary-foreground: hsl(220 14% 88%);
+    --muted:        hsl(222 20% 12%);
+    --muted-foreground: hsl(220 9% 46%);
+    --accent:       hsl(222 20% 14%);
+    --accent-foreground: hsl(220 14% 88%);
+    --destructive:  hsl(0 84% 60%);
+    --destructive-foreground: hsl(0 0% 100%);
+    --ring:         hsl(262 83% 68%);
+    --radius:       0.5rem;
+  }
+}
+
+@layer base {
+  * { border-color: color-mix(in srgb, var(--border) 100%, transparent); }
+  body { background-color: var(--background); color: var(--foreground); }
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background-color: var(--border); border-radius: 9999px; }
+}
+
+.font-display { font-family: var(--font-display); }
