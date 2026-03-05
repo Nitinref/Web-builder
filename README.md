@@ -18,6 +18,20 @@ Type a prompt like *"Build a SaaS landing page with a hero section, pricing card
 
 ---
 
+## Screenshots
+
+<p align="center">
+  <img src="./dashboard.png" width="900"/>
+</p>
+
+<p align="center">
+  <img src="./pipeline.png" width="900"/>
+</p>
+
+<p align="center">
+  <img src="./preview.png" width="900"/>
+</p>
+
 ## Architecture
 
 ```
