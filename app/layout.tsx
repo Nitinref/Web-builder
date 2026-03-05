@@ -5,13 +5,13 @@ import { Providers } from "@/components/layout/Providers";
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
-  variable: "--font-mono",
+  variable: "--font-jetbrains-mono", // ✅ globals.css mein var(--font-jetbrains-mono) hai
   weight: ["400", "500", "700"],
 });
 
 const syne = Syne({
   subsets: ["latin"],
-  variable: "--font-display",
+  variable: "--font-syne", // ✅ globals.css mein var(--font-syne) hai
   weight: ["400", "600", "700", "800"],
 });
 
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body className={`${jetbrainsMono.variable} ${syne.variable} font-mono bg-background text-foreground antialiased`}>
         <Providers>{children}</Providers>
       </body>

@@ -1,5 +1,4 @@
 import { Sandbox } from 'e2b';
-import { tool } from '@openai/agents';
 import { z } from 'zod';
 
 // ── Sandbox registry: projectId → Sandbox instance ────────────────────────
@@ -12,7 +11,7 @@ export async function getOrCreateSandbox(projectId) {
   const existing = sandboxRegistry.get(projectId);
   if (existing) {
     try {
-      await existing.files.list('/');  // ✅ new e2b API
+      await existing.files.list('/');
       return existing;
     } catch {
       sandboxRegistry.delete(projectId);
@@ -49,6 +48,8 @@ function abs(p) {
 }
 
 // ── Tool factory ────────────────────────────────────────────────────────────
+// Returns plain objects { name, description, parameters, execute }
+// Compatible with buildWorker.js toLangChainTools()
 
 export function makeSandboxTools(projectId) {
   const getSb = () => getOrCreateSandbox(projectId);
@@ -56,7 +57,7 @@ export function makeSandboxTools(projectId) {
   return [
 
     // 1. create_file
-    tool({
+    {
       name: 'create_file',
       description: 'Create or overwrite a file with the given content.',
       parameters: z.object({
@@ -66,13 +67,13 @@ export function makeSandboxTools(projectId) {
       execute: async ({ path, content }) => {
         const sb = await getSb();
         const p  = abs(path);
-        await sb.files.write(p, content);  // ✅
+        await sb.files.write(p, content);
         return JSON.stringify({ success: true, path: p });
       },
-    }),
+    },
 
     // 2. read_file
-    tool({
+    {
       name: 'read_file',
       description: 'Read and return the content of a file.',
       parameters: z.object({
@@ -81,13 +82,13 @@ export function makeSandboxTools(projectId) {
       execute: async ({ path }) => {
         const sb      = await getSb();
         const p       = abs(path);
-        const content = await sb.files.read(p);  // ✅
+        const content = await sb.files.read(p);
         return JSON.stringify({ path: p, content });
       },
-    }),
+    },
 
     // 3. write_multiple_files
-    tool({
+    {
       name: 'write_multiple_files',
       description: 'Write several files in one call.',
       parameters: z.object({
@@ -101,15 +102,15 @@ export function makeSandboxTools(projectId) {
         const results = [];
         for (const { path, content } of files) {
           const p = abs(path);
-          await sb.files.write(p, content);  // ✅
+          await sb.files.write(p, content);
           results.push({ path: p, success: true });
         }
         return JSON.stringify({ results });
       },
-    }),
+    },
 
     // 4. delete_file
-    tool({
+    {
       name: 'delete_file',
       description: 'Delete a file from the sandbox.',
       parameters: z.object({
@@ -118,13 +119,13 @@ export function makeSandboxTools(projectId) {
       execute: async ({ path }) => {
         const sb = await getSb();
         const p  = abs(path);
-        await sb.files.remove(p);  // ✅
+        await sb.files.remove(p);
         return JSON.stringify({ success: true, path: p });
       },
-    }),
+    },
 
     // 5. list_directory
-    tool({
+    {
       name: 'list_directory',
       description: 'List entries in a directory.',
       parameters: z.object({
@@ -133,13 +134,13 @@ export function makeSandboxTools(projectId) {
       execute: async ({ path }) => {
         const sb      = await getSb();
         const p       = abs(path);
-        const entries = await sb.files.list(p);  // ✅
+        const entries = await sb.files.list(p);
         return JSON.stringify({ path: p, entries });
       },
-    }),
+    },
 
     // 6. execute_command
-    tool({
+    {
       name: 'execute_command',
       description: 'Run a shell command and return stdout/stderr/exitCode.',
       parameters: z.object({
@@ -159,10 +160,10 @@ export function makeSandboxTools(projectId) {
           exitCode: result.exitCode,
         });
       },
-    }),
+    },
 
     // 7. test_build
-    tool({
+    {
       name: 'test_build',
       description: 'Run `npm run build` in /app and return the result.',
       parameters: z.object({}),
@@ -179,10 +180,10 @@ export function makeSandboxTools(projectId) {
           exitCode: result.exitCode,
         });
       },
-    }),
+    },
 
     // 8. check_missing_packages
-    tool({
+    {
       name: 'check_missing_packages',
       description: 'Install one or more npm packages in /app.',
       parameters: z.object({
@@ -202,37 +203,42 @@ export function makeSandboxTools(projectId) {
           stderr:    result.stderr,
         });
       },
-    }),
+    },
 
     // 9. get_context
-    tool({
-      name: 'get_context',
-      description: 'Read the persisted build context JSON from /app/.build-context.json.',
-      parameters: z.object({}),
-      execute: async () => {
-        const sb = await getSb();
-        try {
-          return await sb.files.read('/app/.build-context.json');  // ✅
-        } catch {
-          return JSON.stringify({});
-        }
-      },
-    }),
-
+  {
+  name: 'get_context',
+  description: 'Read saved context. Use key="builder", "validator", or "checker".',
+  parameters: z.object({
+    key: z.string().default('builder'),
+  }),
+  execute: async ({ key }) => {
+    const sb = await getSb();
+    try {
+      return await sb.files.read(`/app/.build-context-${key}.json`);
+    } catch {
+      try { return await sb.files.read('/app/.build-context.json'); } catch {
+        return JSON.stringify({});
+      }
+    }
+  },
+},
     // 10. save_context
-    tool({
-      name: 'save_context',
-      description: 'Persist build context to /app/.build-context.json.',
-      parameters: z.object({
-        context: z.string().describe('JSON string of the context object to save'),
-      }),
-      execute: async ({ context }) => {
-        const sb   = await getSb();
-        const data = typeof context === 'string' ? context : JSON.stringify(context, null, 2);
-        await sb.files.write('/app/.build-context.json', data);  // ✅
-        return JSON.stringify({ success: true });
-      },
-    }),
+  {
+  name: 'save_context',
+  description: 'Persist build context. Use key="builder", "validator", or "checker" to avoid overwrites.',
+  parameters: z.object({
+    context: z.string().describe('JSON string of the context object to save'),
+    key: z.string().default('builder'),
+  }),
+  execute: async ({ context, key }) => {
+    const sb   = await getSb();
+    const file = `/app/.build-context-${key}.json`;
+    const data = typeof context === 'string' ? context : JSON.stringify(context, null, 2);
+    await sb.files.write(file, data);
+    return JSON.stringify({ success: true, file });
+  },
+},
 
   ];
 }

@@ -1,23 +1,23 @@
 "use client";
+
 import React from "react";
 import { cn } from "@/lib/utils";
 import type { PipelineEvent, PipelineStage } from "@/types";
 
-const STAGE_CONFIG: Record<PipelineStage, { icon: string; color: string; bg: string; border: string }> = {
-    start: { icon: "▶", color: "text-foreground", bg: "", border: "border-border" },
-    sandbox: { icon: "📦", color: "text-cyan-400", bg: "bg-cyan-500/5", border: "border-cyan-500/20" },
-    planning: { icon: "🧠", color: "text-violet-400", bg: "bg-violet-500/5", border: "border-violet-500/20" },
-    building: { icon: "⚙️", color: "text-yellow-400", bg: "bg-yellow-500/5", border: "border-yellow-500/20" },
-    validating: { icon: "🔍", color: "text-orange-400", bg: "bg-orange-500/5", border: "border-orange-500/20" },
-    checking: { icon: "✅", color: "text-cyan-400", bg: "bg-cyan-500/5", border: "border-cyan-500/20" },
-    done: { icon: "🚀", color: "text-green-400", bg: "bg-green-500/5", border: "border-green-500/20" },
-    error: { icon: "❌", color: "text-red-400", bg: "bg-red-500/5", border: "border-red-500/20" },
-    preview: {
-        icon: "",
-        color: "",
-        bg: "",
-        border: ""
-    }
+const STAGE_CONFIG: Record<
+  PipelineStage,
+  { icon: string; text: string }
+> = {
+  start: { icon: "▶", text: "text-white" },
+  sandbox: { icon: "📦", text: "text-white" },
+  planning: { icon: "🧠", text: "text-white" },
+  agent: { icon: "🤖", text: "text-white" },
+  building: { icon: "⚙️", text: "text-white" },
+  validating: { icon: "🔍", text: "text-white" },
+  checking: { icon: "✅", text: "text-white" },
+  done: { icon: "🚀", text: "text-white" },
+  error: { icon: "❌", text: "text-white" },
+  preview: { icon: "🌐", text: "text-white" },
 };
 
 interface Props {
@@ -28,25 +28,56 @@ export function StageCard({ event }: Props) {
   const cfg = STAGE_CONFIG[event.stage] ?? STAGE_CONFIG.start;
 
   return (
-    <div className={cn("flex items-start gap-2.5 rounded-lg border p-2.5 animate-fade-in text-xs", cfg.bg, cfg.border)}>
-      <span className="text-sm shrink-0 mt-0.5">{cfg.icon}</span>
+    <div
+      className={cn(
+        "flex items-start gap-3 rounded-lg border px-3 py-2",
+        "border-neutral-700 bg-neutral-900",
+        "transition-all duration-150",
+        "hover:border-neutral-500"
+      )}
+    >
+      {/* Icon */}
+      <div className="text-sm mt-0.5 shrink-0 text-neutral-300">
+        {cfg.icon}
+      </div>
+
+      {/* Content */}
       <div className="flex-1 min-w-0">
-        <p className={cn("text-[10px] font-bold uppercase tracking-wide mb-0.5", cfg.color)}>
+        <p
+          className={cn(
+            "text-[10px] uppercase tracking-wider mb-1",
+            "text-neutral-400"
+          )}
+        >
           {event.stage}
         </p>
-        <p className="text-muted-foreground leading-relaxed break-words">{event.message}</p>
+
+        <p
+          className={cn(
+            "text-sm leading-relaxed break-words",
+            cfg.text
+          )}
+        >
+          {event.message}
+        </p>
+
+        {/* Preview */}
         {event.previewUrl && (
           <a
             href={event.previewUrl}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1 mt-1.5 text-green-400 hover:text-green-300 transition-colors text-[11px]"
+            className="inline-block mt-2 text-xs text-neutral-300 hover:text-white transition"
           >
-            🔗 Open Preview
+            ↗ Open Preview
           </a>
         )}
+
+        {/* Replans */}
         {event.replans !== undefined && event.replans > 0 && (
-          <p className="text-[10px] text-yellow-400 mt-1">⚠️ Replanned {event.replans}×</p>
+          <p className="text-xs text-neutral-400 mt-1">
+            Replanned {event.replans}×
+          </p>
         )}
       </div>
     </div>

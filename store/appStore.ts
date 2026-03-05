@@ -37,7 +37,7 @@ export const useAppStore = create<AppState>((set) => ({
   buildProgress: 0,
   pipelineEvents: [],
 
-  setActiveProject:   (p)  => set({ activeProject: p, activeChatId: null, previewUrl: null, pipelineEvents: [], selectedFile: null }),
+  setActiveProject:   (p)  => set({ activeProject: p, activeChatId: null, previewUrl: p?.previewUrl ?? null, pipelineEvents: [], selectedFile: null }),
   setActiveChatId:    (id) => set({ activeChatId: id }),
   setActiveTab:       (t)  => set({ activeTab: t }),
   setPreviewUrl:      (u)  => set({ previewUrl: u }),

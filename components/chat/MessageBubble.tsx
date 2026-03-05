@@ -13,8 +13,8 @@ export function MessageBubble({ message }: { message: Message }) {
         className={cn(
           "rounded-xl px-3 py-2 text-xs max-w-[85%] leading-relaxed",
           isUser
-            ? "bg-violet-600 text-white rounded-br-sm"
-            : "bg-muted border border-border rounded-bl-sm"
+            ? "bg-gray-800 text-white rounded-br-sm"
+            : "bg-gray-100 border border-gray-300 rounded-bl-sm text-gray-900"
         )}
       >
         {message.content}
@@ -23,7 +23,7 @@ export function MessageBubble({ message }: { message: Message }) {
             href={message.metadata.previewUrl}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-1 mt-2 text-violet-300 hover:text-white transition-colors text-[11px]"
+            className="flex items-center gap-1 mt-2 text-gray-600 hover:text-gray-900 transition-colors text-[11px]"
           >
             <ExternalLink className="w-3 h-3" />
             Open Preview

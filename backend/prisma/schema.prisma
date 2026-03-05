@@ -30,6 +30,7 @@ model Project {
   name        String
   description String?
   sandboxId   String?
+  previewUrl  String?   // ← ADD THIS
   status      String    @default("active")
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -38,9 +39,9 @@ model Project {
   chats       Chat[]
   files       ProjectFile[]
 
-  @@index([userId])                          // "get all projects for user" — used on every dashboard load
-  @@index([userId, status])                  // "get active projects for user" — filtered queries
-  @@index([createdAt(sort: Desc)])           // "latest projects first" — ORDER BY createdAt DESC
+  @@index([userId])
+  @@index([userId, status])
+  @@index([createdAt(sort: Desc)])
 }
 
 model Chat {

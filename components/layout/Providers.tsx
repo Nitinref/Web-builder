@@ -10,8 +10,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime:  60_000,
-            retry:      1,
+            staleTime: 60_000,
+            retry: 1,
             refetchOnWindowFocus: false,
           },
         },
@@ -25,9 +25,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
         position="bottom-right"
         toastOptions={{
           style: {
-            background: "hsl(var(--card))",
-            color: "hsl(var(--foreground))",
-            border: "1px solid hsl(var(--border))",
+            // ✅ Tailwind v4: CSS vars directly without hsl() wrapper
+            background: "var(--color-card)",
+            color: "var(--color-foreground)",
+            border: "1px solid var(--color-border)",
             fontFamily: "var(--font-mono)",
             fontSize: "12px",
           },

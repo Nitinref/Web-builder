@@ -18,11 +18,11 @@ export interface Project {
   name: string;
   description: string | null;
   sandboxId: string | null;
+  previewUrl: string | null;  // ← ADD THIS
   status: "active" | "archived";
   createdAt: string;
   updatedAt: string;
 }
-
 export interface ProjectFile {
   id: string;
   projectId: string;
@@ -50,8 +50,16 @@ export interface Message {
 }
 
 export type PipelineStage =
-  | "start" | "sandbox" | "planning" | "building"
-  | "validating" | "checking" | "preview" | "done" | "error";
+  | "start"
+  | "sandbox"
+  | "planning"
+  | "agent"
+  | "building"
+  | "validating"
+  | "checking"
+  | "preview"
+  | "done"
+  | "error";
 
 export interface PipelineEvent {
   type: "pipeline_update" | "telemetry" | "connected" | "pong";
