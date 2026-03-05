@@ -1,8 +1,3 @@
-/**
- * src/agents/runAgent.js
- * Shared LangGraph ReAct loop — used by Builder, Validator, Checker
- */
-
 import { StateGraph, END, START, Annotation } from "@langchain/langgraph";
 import { ToolNode } from "@langchain/langgraph/prebuilt";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
@@ -89,7 +84,7 @@ export async function runReActAgent({
     }
   );
 
-  // STREAM LOOP
+
   for await (const chunk of stream) {
     finalState = chunk;
 
@@ -103,7 +98,7 @@ export async function runReActAgent({
 
       const type = last._getType?.() ?? last.constructor?.name;
 
-      // AI reasoning
+     
       if (type === "ai" || type === "AIMessage") {
         let text = "";
 
@@ -115,7 +110,6 @@ export async function runReActAgent({
           await emit(chatId, "agent", `🤖 ${text.slice(0, 150)}`);
         }
 
-        // Tool calls
         if (last.tool_calls?.length) {
           for (const t of last.tool_calls) {
             await emit(chatId, "agent", `🔧 Calling tool: ${t.name}`);
@@ -123,7 +117,7 @@ export async function runReActAgent({
         }
       }
 
-      // Tool result
+ 
       if (type === "tool" || type === "ToolMessage") {
         await emit(chatId, "agent", "✅ Tool completed");
       }
