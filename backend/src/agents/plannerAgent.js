@@ -1,9 +1,3 @@
-/**
- * src/agents/plannerAgent.js
- * PlannerAgent — direct LLM call, no tools
- * Uses Haiku (fast + cheap, simple JSON task)
- */
-
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { makeModel } from '../utils/llm.js';
 import { PLANNER_SYSTEM } from '../prompts/prompts.js';
@@ -21,12 +15,7 @@ function extractJSON(text) {
   return text;
 }
 
-/**
- * runPlannerAgent
- * @param {string} prompt       — full user prompt with optional history
- * @param {number} timeoutMs
- * @returns {string}            — raw JSON string of build plan
- */
+
 export async function runPlannerAgent(prompt, timeoutMs = 30_000) {
   const model = makeModel('planner', 0, 1024);
 
