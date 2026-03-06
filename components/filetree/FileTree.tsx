@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { ChevronRight, ChevronDown, File, Folder, FolderOpen } from "lucide-react";
 import { useAppStore } from "@/store/appStore";
 import { useProjectFiles } from "@/hooks/useProjects";
-import { getFileIcon } from "@/lib/utils";
+import { getFileIcon } from "@/components/ui/getFileIcon";
 import { cn } from "@/lib/utils";
 import type { ProjectFile } from "@/types";
 

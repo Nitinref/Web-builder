@@ -4,7 +4,7 @@ import { Copy, Check, Download, ChevronRight, ChevronDown, FolderOpen, Folder } 
 import Editor from "@monaco-editor/react";
 import { useAppStore } from "@/store/appStore";
 import { useFileContent, useProjectFiles } from "@/hooks/useProjects";
-import { getFileIcon } from "@/lib/utils";
+import { getFileIcon } from "@/components/ui/getFileIcon";
 import { cn } from "@/lib/utils";
 
 function getLanguage(fileName: string): string {

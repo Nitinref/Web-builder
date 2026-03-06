@@ -16,14 +16,6 @@ export function formatCost(usd: number): string {
   return "$" + usd.toFixed(4);
 }
 
-export function getFileIcon(path: string): string {
-  if (path.endsWith(".tsx") || path.endsWith(".jsx")) return "⚛";
-  if (path.endsWith(".ts") || path.endsWith(".js")) return "📜";
-  if (path.endsWith(".css")) return "🎨";
-  if (path.endsWith(".html")) return "🌐";
-  if (path.endsWith(".json")) return "📋";
-  return "📄";
-}
 
 export function hashColor(str: string): string {
   let h = 0;
