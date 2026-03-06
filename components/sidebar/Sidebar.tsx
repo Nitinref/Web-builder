@@ -8,7 +8,7 @@ import { useProjects, useProjectFiles } from "@/hooks/useProjects";
 import { useAppStore } from "@/store/appStore";
 import { useAuth } from "@/hooks/useAuth";
 import { NewProjectDialog } from "./NewProjectDialog";
-import { getFileIcon, hashColor, cn } from "@/lib/utils";
+import { hashColor, cn } from "@/lib/utils";
 import type { ProjectFile } from "@/types";
 
 function ForgeLogo() {
@@ -177,7 +177,6 @@ export default function ForgeSidebar() {
                                    text-xs text-muted-foreground hover:text-foreground
                                    hover:bg-white/5 transition-colors duration-150 text-left"
                       >
-                        <span className="text-sm shrink-0">{getFileIcon(f.path)}</span>
                         {open && <span className="truncate">{f.path.split("/").pop()}</span>}
                       </button>
                     ))}
