@@ -12,18 +12,15 @@ import { validatePlan } from '../utils/planValidator.js';
 import { BUILDER_MODEL, PLANNER_MODEL } from '../utils/llm.js';
 import prisma from '../db/index.js';
 
-// Agents
+
 import { runPlannerAgent } from '../agents/plannerAgent.js';
 import { runBuilderAgent } from '../agents/builderAgent.js';
 import { runValidatorAgent } from '../agents/validatorAgent.js';
 import { runCheckerAgent } from '../agents/checkerAgent.js';
 
-// ─────────────────────────────────────────────────────────────────────────────
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// ─────────────────────────────────────────────────────────────────────────────
-// RETRY WRAPPER — exponential backoff on 429s
-// ─────────────────────────────────────────────────────────────────────────────
 async function withRetry(fn, maxRetries = 2, label = '') {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -47,17 +44,11 @@ async function withRetry(fn, maxRetries = 2, label = '') {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// REDIS EMIT
-// ─────────────────────────────────────────────────────────────────────────────
 async function emit(chatId, stage, message, extra = {}) {
   const payload = JSON.stringify({ type: 'pipeline_update', stage, message, ts: Date.now(), ...extra });
   await publisher.publish(buildChannel(chatId), payload);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SCAFFOLD
-// ─────────────────────────────────────────────────────────────────────────────
 async function scaffoldReactApp(sb, chatId) {
   await emit(chatId, 'sandbox', 'Scaffolding React + Tailwind + React Icons…');
 
@@ -110,9 +101,6 @@ async function scaffoldReactApp(sb, chatId) {
   await emit(chatId, 'sandbox', 'Scaffold complete.');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Convert sandbox tools → LangChain DynamicStructuredTool
-// ─────────────────────────────────────────────────────────────────────────────
 function toLangChainTools(sandboxTools) {
   return sandboxTools.map((t) =>
     new DynamicStructuredTool({
@@ -133,9 +121,7 @@ function toLangChainTools(sandboxTools) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PARALLEL FILE COLLECTOR
-// ─────────────────────────────────────────────────────────────────────────────
+
 async function collectSandboxFiles(sb, dirPath) {
   const entries = await sb.files.list(dirPath);
   const files = entries.filter((e) => e.type !== 'dir');
@@ -156,9 +142,6 @@ async function collectSandboxFiles(sb, dirPath) {
   return results;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MAIN JOB PROCESSOR
-// ─────────────────────────────────────────────────────────────────────────────
 async function processBuildJob(job) {
   const { chatId, projectId, userMessage, previousMessages } = job.data;
   const logger = new PipelineLogger(chatId, job.id);
@@ -174,7 +157,6 @@ async function processBuildJob(job) {
       data: { chatId, role: 'user', content: userMessage, metadata: { jobId: job.id } },
     });
 
-    // ── STEP 1: Sandbox ───────────────────────────────────────────────────
     logger.startStage('sandbox');
     await emit(chatId, 'sandbox', 'Initialising cloud sandbox…');
 
@@ -211,7 +193,7 @@ export default defineConfig({
 
     logger.endStage('sandbox');
 
-    // ── Tool sets ─────────────────────────────────────────────────────────
+
     const sandboxTools = makeSandboxTools(projectId);
     const lcTools = toLangChainTools(sandboxTools);
     const toolMap = Object.fromEntries(sandboxTools.map((t) => [t.name, t]));
@@ -234,7 +216,7 @@ export default defineConfig({
       ? `Previous context:\n${trimmedHistory}\n\nRequest: ${userMessage}`
       : userMessage;
 
-    // ── RETRY LOOP ────────────────────────────────────────────────────────
+
     const MAX_REPLANS = 2;
     let replanCount = 0;
     let buildFailed = false;
@@ -286,7 +268,7 @@ export default defineConfig({
         });
       } catch { }
 
-      // ── STEP 3: BuilderAgent ──────────────────────────────────────────
+      
       await emit(chatId, 'building',
         isReplan ? 'Rebuilding with revised plan…' : 'Writing code and assembling components…'
       );
@@ -307,7 +289,6 @@ export default defineConfig({
       await job.updateProgress(55 + replanCount * 5);
       await emit(chatId, 'building', 'Code generation complete.');
 
-      // ── STEP 4: ValidatorAgent ────────────────────────────────────────
       await emit(chatId, 'validating', 'Reviewing source files and fixing issues…');
       logger.startStage('CodeValidatorAgent');
 
@@ -326,7 +307,7 @@ export default defineConfig({
       await job.updateProgress(72 + replanCount * 3);
       await emit(chatId, 'validating', 'Validation complete.');
 
-      // ── STEP 5: CheckerAgent ──────────────────────────────────────────
+
       await emit(chatId, 'checking', 'Running production build and lint check…');
       logger.startStage('AppCheckerAgent');
 
@@ -371,8 +352,6 @@ export default defineConfig({
 
     await job.updateProgress(92);
 
-    // ── STEP 6: Dev server → preview URL ─────────────────────────────────
-    // ── STEP 6: Dev server → preview URL ─────────────────────────────────
     let previewUrl = null;
     try {
     await sb.files.write('/app/vite.config.js',
@@ -415,7 +394,7 @@ export default defineConfig({
       logger._log('warn', 'Dev server start failed', { error: err.message });
     }
 
-    // ── STEP 7: Sync files to DB ──────────────────────────────────────────
+
     await emit(chatId, 'checking', 'Syncing files to database…');
     try {
       const allFiles = await collectSandboxFiles(sb, '/app/src');
@@ -442,7 +421,6 @@ export default defineConfig({
       logger._log('warn', 'File sync error', { error: err.message });
     }
 
-    // ── STEP 8: Finalise ──────────────────────────────────────────────────
     const summary = checkOutput || 'Build pipeline completed.';
     const tokenSummary = logger.tokens.summary();
 
@@ -479,7 +457,7 @@ export default defineConfig({
   }
 }
 
-// ── BullMQ Worker ─────────────────────────────────────────────────────────────
+
 const worker = new Worker('website-builds', processBuildJob, {
   connection: bullConnection,
   concurrency: 1,
